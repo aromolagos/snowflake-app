@@ -1,7 +1,25 @@
+# -------------------------
+# LIBRERIAS
+# -------------------------
 import streamlit
 import pandas
 import requests
 
+# -------------------------
+# FUNCIONES
+# Creacion de funcion
+def get_fruityvice_data(this_fruit_choice):
+    fruityvice_response = requests.get("https://fruityvice.com/api/fruit/" + this_fruit_choice)
+    # streamlit.text(fruityvice_response.json())
+
+    # Normalizamos el dato que nos entrega la api rest
+    fruityvice_normalized = pandas.json_normalize(fruityvice_response.json())
+    return fruityvice_normalized
+# -------------------------
+
+
+# -------------------------
+# MAIN
 streamlit.title("Listado de comida")
 
 streamlit.header('Breakfast Menu')
@@ -41,12 +59,5 @@ back_from_function = get_fruityvice_data(fruit_choice)
 #Mostramos el dato filtrado desde un textinput
 streamlit.dataframe(back_from_function)
 
-# Creacion de funcion
-def get_fruityvice_data(this_fruit_choice):
-    fruityvice_response = requests.get("https://fruityvice.com/api/fruit/" + this_fruit_choice)
-    # streamlit.text(fruityvice_response.json())
 
-    # Normalizamos el dato que nos entrega la api rest
-    fruityvice_normalized = pandas.json_normalize(fruityvice_response.json())
-    return fruityvice_normalized
   
