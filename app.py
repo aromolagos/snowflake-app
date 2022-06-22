@@ -9,13 +9,29 @@ import snowflake.connector
 # -------------------------
 # FUNCIONES
 # Creacion de funcion
+# Creacion de funcion
 def get_fruityvice_data(this_fruit_choice):
-    fruityvice_response = requests.get("https://fruityvice.com/api/fruit/" + this_fruit_choice)
+    fruityvice_response = requests.get("https://fruityvice.com/api/fruit/" + fruit_choice)
     # streamlit.text(fruityvice_response.json())
 
     # Normalizamos el dato que nos entrega la api rest
     fruityvice_normalized = pandas.json_normalize(fruityvice_response.json())
     return fruityvice_normalized
+
+# Funcion de listado de datos desde snowflake
+def get_fruit_load_list():
+    with my_cnx.cursor() as my_cur:
+        my_cur.execute("select * from fruit_load_list")
+        return my_cur.fetchall()
+
+# funcion de insersion a Snowflake
+def insert_row_snowflake(new_fruit):
+    with my_cnx.cursor() as my_cur:
+        query = "insert into fruit_load_list values ('from streamlit " + new_fruit + "')"
+        my_cur.execute(query)
+        my_cur.close()
+        return "Tranks fro adding " + new_fruit
+
 # -------------------------
 
 
@@ -32,33 +48,51 @@ streamlit.text('🥑🍞 Avocado toast')
 #Agregar una seccion para crear tu batido
 streamlit.header('🍌🥭 Build Your Own Fruit Smoothie 🥝🍇')
 
-#Cargar un listado de datos en formato csv para mostrarlo en la applicacion
 my_fruit_list = pandas.read_csv("https://uni-lab-files.s3.us-west-2.amazonaws.com/dabw/fruit_macros.txt")
 
-
-#crear un filtrado con multiples selecciones
+# Mostramos el titulo
 my_fruit_list = my_fruit_list.set_index('Fruit')
 
-#Seleccion multiple
+# Seleccion multiple de frutas
 fruits_selected = streamlit.multiselect("Pick some fruits:", list(my_fruit_list.index), ['Avocado', 'Strawberries'])
-
-#Filtro a nivel de tabla
 fruits_to_show = my_fruit_list.loc[fruits_selected]
 
-#Tabla filtrada frutas con informacion nutricional
 streamlit.dataframe(fruits_to_show)
 
-#Seccion de consumo de API
+#Seleccion de frutos mediante API rest
 streamlit.header("Fruityvice Fruit Advice!")
+try:
+    fruit_choice = streamlit.text_input('What fruit would you like information about?')
+    if not fruit_choice:
+        streamlit.error('Please select a fruit to get information')
+    else:
+        back_from_function = get_fruityvice_data(fruit_choice)
+        # mostramos el dato en formato tabla
+        streamlit.dataframe(back_from_function)
+except URLError as e:
+    streamlit.error()
 
-#Text Input para agregar /consultar sobre una fruta
-fruit_choice = streamlit.text_input('What fruit would you like information about?')
+# streamlit.stop()
 
-#Invocamos la funcion get para extrar la fruta desde una API rest
-back_from_function = get_fruityvice_data(fruit_choice)
+streamlit.header("The fruit load list contains:")
 
-#Mostramos el dato filtrado desde un textinput
-streamlit.dataframe(back_from_function)
+#Interaccion con Snowflake
+if streamlit.button('Get Fruit Load List'):
+    #Creamos la conexion de datos a Snowflake
+    my_cnx = snowflake.connector.connect(**streamlit.secrets["snowflake"])
+    my_data_rows = get_fruit_load_list()
+    streamlit.dataframe(my_data_rows)
+
+#Insert data
+add_my_fruit = streamlit.text_input('What fruit would you like to add?')
+if streamlit.button('Add a Fruit to the List'):
+    my_cnx = snowflake.connector.connect(**streamlit.secrets["snowflake"])
+    back_from_function = insert_row_snowflake(add_my_fruit)
+    my_cnx.close()
+    streamlit.text(back_from_function)
+
+
+
 
 
   
